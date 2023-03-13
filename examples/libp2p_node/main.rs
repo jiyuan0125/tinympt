@@ -129,6 +129,8 @@ async fn main() -> Result<()> {
     loop {
         tokio::select! {
             // 从 swarm 中获取事件
+            // match event 这段代码可以封装成一个函数
+            // 在 select! 里直接写代码，无法使用代码自动格式化功能
             event = swarm.select_next_some() => match event {
                 // 当有新的地址被监听时，打印出来
                 SwarmEvent::NewListenAddr { address, .. } => {

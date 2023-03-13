@@ -58,7 +58,7 @@ impl TrieNode {
         }
     }
 
-    /// 将 TridNode 压缩，压缩的过程就是将分支节点的数据存入数据库中, 并返回一个 TrieNodeLink::HashValue
+    /// 将 TridNode 压缩，压缩的过程就是将节点存入数据库中, 并返回一个 TrieNodeLink::HashValue
     pub fn collapse(self, db: &mut impl Database) -> Result<TrieNodeLink> {
         let trie_node = match self {
             // 如果是 TrieNode::Node, 那么直接返回

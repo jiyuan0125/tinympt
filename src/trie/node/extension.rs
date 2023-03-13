@@ -83,7 +83,7 @@ impl Extension {
         Ok(trie_node)
     }
 
-    /// 将扩展节点压缩，压缩的过程就是将分支节点的数据存入数据库中, 并返回一个 TrieNodeLink::HashValue
+    /// 将扩展节点压缩，压缩的过程就是将节点存入数据库中, 并返回一个 TrieNodeLink::HashValue
     pub fn collapse(self, db: &mut impl Database) -> Result<TrieNodeLink> {
         // 解构
         let Extension {

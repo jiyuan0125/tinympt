@@ -18,49 +18,49 @@ where
     K: AsRef<[u8]>,
     V: Serialize + DeserializeOwned,
 {
-    /// The database type
+    /// 数据库的类型
     type Database: Database;
 
-    /// If the trie is dirty, it means that the data has not been committed
+    /// 如果 trie 是 dirty 的，那么意味着数据还没有被提交
     fn dirty(&self) -> bool;
 
-    /// Set the dirty flag
+    /// 设置 dirty 标志
     fn set_dirty(&mut self, dirty: bool);
 
-    /// Get the root of the trie
+    /// 获得 trie 的根节点
     fn root_node(&self) -> &TrieNodeLink;
 
-    /// Used to move the root node out of the trie
+    /// 用来从 trie 里移除根节点
     fn take_root_node(&mut self) -> TrieNodeLink;
 
-    /// Set the root of the trie
+    /// 设置 tire 的根节点
     fn set_root_node(&mut self, node: TrieNodeLink);
 
-    /// Get the database mut reference
+    /// 获得数据库的可变引用
     fn db_mut(&mut self) -> &mut Self::Database;
 
-    /// Get the database mut reference
+    /// 获得数据库的不可变引用
     fn db_ref(&self) -> &Self::Database;
 
-    /// Insert a key-value into the trie
+    /// 向 trie 里插入一个 key-value
     fn insert(&mut self, key: K, value: V) -> Result<()> {
-        // Convert the key to nibble
+        // 将 key 转换为 nibble 形式
         let key_nb: NibbleVec = util::convert_bytes_to_nibbles(key.as_ref());
-        // Take the root node out of the trie
+        // 取得 trie 的根节点
         let root_node = self.take_root_node();
-        // Serialize the value
+        // 将 value 序列化
         let bin_node = bincode::serialize(&value)?;
-        // Insert the key-value into the trie, and return the new root node
+        // 将 key-value 插入到 trie 里，并返回新的根节点
         let root_node = root_node.insert(self.db_mut(), &key_nb, bin_node)?;
-        // Set the new root node to the trie
+        // 将新的根节点设置到 trie 里
         self.set_root_node(root_node);
-        // Set the dirty flag
+        // 设置 dirty 标志
         self.set_dirty(true);
 
         Ok(())
     }
 
-    /// Get a value from the trie
+    /// 获得 trie 里的一个 key-value
     fn get_value(&self, key: &K) -> Result<Option<V>> {
         // Convert the key to nibble
         let key_nb: NibbleVec = util::convert_bytes_to_nibbles(key.as_ref());
@@ -70,41 +70,53 @@ where
             .map(|bin_node| bincode::deserialize(&bin_node).unwrap()))
     }
 
-    /// Commit the data to the database,
-    /// after the commit, the node data will become hash
-    /// and return the root hash
+    /// 把数据提交到数据库里，提交之后，节点数据会变成 hash，然后返回根 hash
     fn commit(&mut self) -> Result<Option<HashValue>> {
+        // 获得根节点
         let root_node = self.take_root_node();
+        // 压缩根节点
         let root_node = root_node.collapse(self.db_mut())?;
+        // 重新设置根节点
         self.set_root_node(root_node);
+        // 设置 dirty 标志
         self.set_dirty(false);
 
         match self.root_node() {
             TrieNodeLink::HashValue(hash_value) => Ok(Some(hash_value.clone())),
             TrieNodeLink::Empty => Ok(None),
+            // 压缩以后的 trie, 要么是Empty，要么是HashValue，不可能到这里
             _ => unreachable!(),
         }
     }
 
-    /// Revert to a version
+    /// 恢复到一个版本
     fn revert(&mut self, root_hash: HashValue) -> Result<()> {
+        // 设置根节点
         self.set_root_node(TrieNodeLink::HashValue(root_hash));
+        // 设置 dirty 标志
         self.set_dirty(false);
         Ok(())
     }
 
-    /// Get the proof of the key
+    /// 获得 proof，proof 里包含了 key 的路径上的所有节点, bool 表示 key 是否存在， MemoryDatabase 是保存 proof 的数据库
     fn get_proof(&mut self, root_hash: &HashValue, key: &K) -> Result<(bool, MemoryDatabase)> {
+        // 如果 trie 是 dirty 的，那么先提交
         if self.dirty() {
             self.commit()?;
         }
+        // 创建一个 MemoryDatabase
         let mut proof_db = MemoryDatabase::new();
-        let bin_node = self.db_ref().get(root_hash)?;
-        match bin_node {
+        // 从数据库里获得根节点的二进制数据
+        let bin_node_opt = self.db_ref().get(root_hash)?;
+        match bin_node_opt {
             Some(bin_node) => {
+                // 反序列化根节点
                 let trie_node: TrieNode = bincode::deserialize(&bin_node)?;
+                // 将 key 转换为 nibble 形式
                 let key_nb = util::convert_bytes_to_nibbles(key.as_ref());
+                // 将根节点插入到 proof_db 里
                 proof_db.insert(*root_hash, bin_node)?;
+                // 通过查找key,将沿途路径上的节点收集到 proof_db 里
                 let exists = trie_node.get_proof(
                     self.db_ref(),
                     &mut proof_db,
@@ -117,6 +129,9 @@ where
     }
 }
 
+/// 验证 proof, 返回 key 对应的 value
+/// 如果 key 存在，那么返回 Some(value)，表示验证成功
+/// 如果 key 不存在，那么返回 None, 表明验证失败
 #[allow(dead_code)]
 pub fn verify_proof<K, V>(
     root_hash: &HashValue,
@@ -129,8 +144,11 @@ where
 {
     match proof_db.get(&root_hash)? {
         Some(bin_node) => {
+            // 反序列化根节点
             let trie_node: TrieNode = bincode::deserialize(&bin_node)?;
+            // 将 key 转换为 nibble 形式
             let key_nb = util::convert_bytes_to_nibbles(key.as_ref());
+            // 从根节点里获得 key 对应的 value
             let bin_value_opt = trie_node.get_value(proof_db, &key_nb)?;
             match bin_value_opt {
                 Some(bin_value) => Ok(Some(bincode::deserialize(&bin_value)?)),
@@ -161,7 +179,7 @@ mod tests {
     }
 
     /// 这里面向 trait 测试，带来了两点好处：
-    /// 1、能够以 trait 的视角，在测试时重点关注 trait 行为定义是否合理，比如参数等，是否满足好的用户体验
+    /// 1、能够以 trait 的视角，在测试时重点关注 trait 行为定义是否合理，比如参数，返回值等，是否满足好的用户体验
     /// 2、每个实现的测试都可以复用这个方法
     fn trie_works<'a, T>(trie: &mut T)
     where

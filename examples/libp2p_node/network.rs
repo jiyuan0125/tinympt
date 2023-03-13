@@ -23,6 +23,7 @@ pub struct ProofProtocol();
 /// 实现 libp2p::request_response::ProtocolName
 impl ProtocolName for ProofProtocol {
     fn protocol_name(&self) -> &[u8] {
+        // 这是协议名字和版本号, libp2p 会根据这个名字来区分不同的协议
         "/proof/1".as_bytes()
     }
 }
@@ -34,11 +35,15 @@ pub struct ProofCodec();
 /// 实现 libp2p::request_response::Codec
 #[async_trait]
 impl Codec for ProofCodec {
+    /// 协议类型
     type Protocol = ProofProtocol;
+    /// Request 类型
     type Request = ProofRequest;
+    /// Response 类型
     type Response = ProofResponse;
 
-    /// 从 io 里读取一个请求
+    /// 从 io 里读取一个请求。
+    /// 这里的 io 是多路复用后的 stream, 下同
     async fn read_request<T>(&mut self, _: &ProofProtocol, io: &mut T) -> io::Result<Self::Request>
     where
         T: AsyncRead + Unpin + Send,
@@ -112,6 +117,9 @@ impl Codec for ProofCodec {
 }
 
 /// 一个组合的 NetworkBehaviour
+/// 每个 behaviour 都是一个 NetworkBehaviour，然后组合成一个 ComposedBehaviour
+/// NetworkBehaviour 类似于 substrate 里的 pallet，用于组装出你要的功能，也可以开发自己的 NetworkBehaviour
+/// `rust-libp2p` 的作者是 "Parity Technologies <admin@parity.io>"
 #[derive(NetworkBehaviour)]
 #[behaviour(out_event = "ComposedEvent")]
 pub struct ComposedBehaviour {

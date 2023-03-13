@@ -50,7 +50,7 @@ impl Branch {
         self.children[index] = child;
     }
 
-    /// 将分支节点压缩, 压缩的过程就是将分支节点的数据存入数据库中, 并返回一个 TrieNodeLink::HashValue
+    /// 将分支节点压缩, 压缩的过程就是将节点存入数据库中, 并返回一个 TrieNodeLink::HashValue
     pub fn collapse(self, db: &mut impl Database) -> Result<TrieNodeLink> {
         // 使用解构语法将 self 分解成三个部分
         // 解构也可以直接写在函数的参数中，如: 
