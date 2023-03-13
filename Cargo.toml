@@ -1,0 +1,61 @@
+[package]
+name = "tinympt"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+bincode = "1"
+thiserror = "1"
+serde = { version = "1", features = ["derive"] }
+array-init = "2"
+hex = "0.4"
+blake2 = "0.10"
+rocksdb = { version = "0.20", optional = true }
+prost = { version = "0.11", optional = true }
+bytes = { version = "1", optional = true }
+
+[features]
+default = []
+rocksdb = ["dep:rocksdb"]
+network = ["dep:prost", "dep:bytes"]
+
+[dev-dependencies]
+futures = "0.3"
+tokio = { version = "1", features = ["full"] }
+tokio-util = { version = "0.7", features = ["full"] }
+anyhow = "1"
+log = "0.4"
+env_logger = "0.10"
+clap = { version = "4", features = ["derive"] }
+libp2p = { version = "0.51", features = [
+    "macros",
+    "tokio",
+    "tcp",
+    "dns",
+    "websocket",
+    "noise",
+    "mplex",
+    "yamux",
+    "ping",
+    "identify",
+    "request-response",
+    "mdns"
+] }
+async-trait = "0.1.66"
+
+[build-dependencies]
+prost-build = "0.11"
+
+[[example]]
+name = "tcp_server"
+required-features = ["rocksdb", "network"]
+
+[[example]]
+name = "tcp_client"
+required-features = ["network"]
+
+[[example]]
+name = "libp2p_node"
+required-features = ["network"]

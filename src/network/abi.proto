@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package abi;
+
+message ProofRequest {
+    bytes root_hash = 1;
+    bytes key = 2;
+}
+
+message ProofResponse {
+    bool exists = 1;
+    bytes proof_db = 2;
+}
