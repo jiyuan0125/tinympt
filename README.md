@@ -9,6 +9,7 @@
 ## 参考的资料
 
 [Kaichao 老师的博文：理解 Substrate 数据存储的底层实现 Merkle Patricia Trie](https://zhuanlan.zhihu.com/p/113755342)
+
 [https://github.com/M4tsuri/mpt-rs](https://github.com/M4tsuri/mpt-rs)
 
 ## 实现的功能：
@@ -50,7 +51,6 @@ src
 │   │   └── node.rs        # 叶子节点
 │   ├── memory_trie.rs     # 使用了内存数据库的 trie 实现
 │   ├── rocksdb_trie.rs    # 使用了 rocksdb 数据库的 trie 实现
-│   ├── nibble.rs          # nibble 相关类型和方法
 │   ├── mod.rs             # trie 模块入口, 
 │   └── util.rs            # 工具方法
 ├── error.rs               # 错误类型
@@ -106,8 +106,6 @@ cargo run --example libp2p_node --features="network rocksdb" -- --db-path=/tmp/t
 [2023-03-12T12:36:16Z INFO  libp2p_node] Proof response, exists = true
 [2023-03-12T12:36:16Z INFO  libp2p_node] Value = Some("pellet02_state01_value02")
 ```
-
-
 
 ![](img/substrate.png)
 
