@@ -58,4 +58,4 @@ required-features = ["network"]
 
 [[example]]
 name = "libp2p_node"
-required-features = ["network"]
+required-features = ["rocksdb", "network"]
